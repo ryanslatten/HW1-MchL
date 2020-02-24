@@ -17,26 +17,21 @@ def naive_bayes_train(train_data, train_labels, params):
 
     labels = np.unique(train_labels)
 
-    d, n = train_data.shape
+    d = train_data.shape[0]
     num_classes = labels.size
 
     model = {
-        "Labels": labels,
-        "Priors": np.empty(shape=(num_classes,1)),
+        "Priors": np.empty(num_classes),
         "Probs": np.empty(shape=(d,num_classes))
     }
-    i = 0
-    for l in labels:
+    for i,l in enumerate(labels):
         array = train_labels == l
         count = np.count_nonzero(array)
-        model["Priors"][i,0] = count / array.size
+        model["Priors"][i] = count / array.size
         for j in range(d):
             intersect = np.dot(array,train_data[j,:])
             num = np.count_nonzero(intersect)
             model["Probs"][j,i] = (num+1)/(count+2)
-
-        i += 1
-
     return model
 
 
@@ -50,23 +45,14 @@ def naive_bayes_predict(data, model):
     :return: length n numpy array of the predicted class labels
     :rtype: array_like
     """
-    d,n = data.shape
+    n = data.shape[1]
     key = []
-    labels = model["Labels"]
-    probs = model["Probs"]
     priors = model["Priors"]
+    probs = model["Probs"].T.dot(data)
     for i in range(n):
-        x = data[:,i]
-        probabilites = np.zeros(labels.size)
-        for index,c in enumerate(labels):
-            for ind,att in enumerate(x):
-                prob = probs[ind,index]
-                if att:
-                    probabilites[index] += np.log(prob)
-                else:
-                    prob = 1 - prob
-                    probabilites[index] += np.log(prob)
-            probabilites += np.log(priors[index])
-        key.append(labels[np.argmax(probabilites)])
-
+        x = probs[:,i]
+        for j,p in enumerate(priors):
+            probs[j,i] *= p
+        probabilites = np.argmax(probs[:,i])
+        key.append(probabilites)
     return key

@@ -1,6 +1,6 @@
 """This module includes methods for training and predicting using decision trees."""
 import numpy as np
-
+from statistics import mode, StatisticsError
 
 def calculate_information_gain(data, labels):
     """
@@ -112,10 +112,36 @@ def recursive_tree_train(data, labels, depth, max_depth, num_classes):
     :return: dictionary encoding the learned decision tree node
     :rtype: dict
     """
-    # TODO: INSERT YOUR CODE FOR LEARNING THE DECISION TREE STRUCTURE HERE
-
+    n = np.shape(data)[1]
+    node = {
+        "Prediction": None,
+        "Test": None,
+        "Left": None,
+        "Right": None
+    }
+    if depth == max_depth or num_classes <= 1:
+        node["Prediction"] = mode(labels)
+        return node
+    w = np.argmax(calculate_information_gain(data,labels))
+    node["Test"] = w
+    table_true,table_false = [],[]
+    for i in range(n):
+        if data[w,i]:
+            table_true.append(i)
+        else:
+            table_false.append(i)
+    data2 = np.delete(data,w,0)
+    data_l = np.delete(data2,table_false,1) # examples where attribute is true
+    labels_l = [labels[i] for i in table_true] # minus labels attached to above
+    remaining_l = np.unique(labels_l)
+    data_r = np.delete(data2,table_true,1) # examples where attribute is false
+    labels_r = [labels[i] for i in table_false] # minus labels attached to above
+    remaining_r = np.unique(labels_r)
+    if len(labels_l) > 0:
+        node["Left"] = recursive_tree_train(data_l,labels_l,depth+1,max_depth,remaining_l.size)
+    if len(labels_r) > 0:
+        node["Right"] = recursive_tree_train(data_r,labels_r,depth+1,max_depth,remaining_r.size)
     return node
-
 
 def decision_tree_predict(data, model):
     """Predict most likely label given computed decision tree in model.
@@ -127,6 +153,18 @@ def decision_tree_predict(data, model):
     :return: length n numpy array of the predicted class labels
     :rtype: array_like
     """
-    # TODO: INSERT YOUR CODE FOR COMPUTING THE DECISION TREE PREDICTIONS HERE
-
+    labels = np.empty(data.shape[1])
+    for i,x in enumerate(data.T):
+        labels[i] = getPrediction(x,model)
     return labels
+
+def getPrediction(example,model):
+    prediction = model["Prediction"]
+    if prediction == None:
+        test = example[model["Test"]]
+        nex = np.delete(example,model["Test"])
+        if test:
+            prediction = getPrediction(nex,model["Left"])
+        else:
+            prediction = getPrediction(nex,model["Right"])
+    return prediction

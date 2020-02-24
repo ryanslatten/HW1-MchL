@@ -37,10 +37,22 @@ def cross_validate(trainer, predictor, all_data, all_labels, folds, params):
     assert indices.size == ideal_length
 
     indices = indices.reshape((examples_per_fold, folds))
-
+    p = np.random.permutation(n)
+    data_s,label_s = all_data[:,p],all_labels[p]
+    labels = np.empty(folds)
     models = []
 
-    # TODO: INSERT YOUR CODE FOR CROSS VALIDATION HERE
+    for i in range(folds):
+        indices[:,i] = data_s[:,0:examples_per_fold]
+        labels[i] = label_s[0:examples_per_fold]
+
+    for i in range(folds):
+        c,p = np.delete(indices,i,1),indices[:,i]
+        train = np.concatenate(c,1)
+        model = trainer(train,labels[i],{})
+        models.append(model)
+        predict = predictor(p,model)
+        scores[i] = np.mean(predict)
 
     score = np.mean(scores)
 
